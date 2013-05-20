@@ -1077,7 +1077,7 @@ public class DialogueWindow : EditorWindow {
 			{
 //				EditorUtility.SetDirty(line);
 //				Undo.RegisterUndo(line, "set speaker");
-				if(spIndex == Dialogue.SpeakerIndex.ADD_SPEAKER)
+				if(spIndex == (int)Dialogue.SpeakerIndex.ADD_SPEAKER)
 				{
 					//todo: dialog for adding speaker. save new speaker for future lines, at least in this dialogue
 				}

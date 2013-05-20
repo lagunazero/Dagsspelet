@@ -61,6 +61,11 @@
      <Compile Include="Assets\Scripts\Interface\Countdown.cs" />
      <Compile Include="Assets\Scripts\Quiz\Question.cs" />
      <Compile Include="Assets\Scripts\Quiz\Quiz.cs" />
+     <Compile Include="Assets\Scripts\World\Actions\BaseAction.cs" />
+     <Compile Include="Assets\Scripts\World\Actions\PickupItem.cs" />
+     <Compile Include="Assets\Scripts\World\Actions\StartDialogue.cs" />
+     <Compile Include="Assets\Scripts\World\Environment.cs" />
+     <Compile Include="Assets\Scripts\World\Interest.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
