@@ -5,12 +5,14 @@ using System.Collections.Generic;
 [System.Serializable]
 public class Line {
 	
+	public string id;
+	
 	public bool isPlayer;
 	public string speaker = "";
 	public string text = "";
 	public int priority = 0;
 	public List<Condition> conditions = new List<Condition>();
-	public List<Line> replies = new List<Line>();
+	public List<string> replies = new List<string>();
 	
 	//Action with parameters. Need to divide them up since we can't pass them as object properly.
 	public string action;

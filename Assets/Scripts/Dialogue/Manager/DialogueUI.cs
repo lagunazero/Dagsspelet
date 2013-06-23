@@ -9,14 +9,15 @@ public class DialogueUI : MonoBehaviour {
 
 	private DialogueManager dm;
 	
-	public int lineWidth = 500;
-	public float replyLeftPadding = 0.025f;
+	public float lineWidth = 0.8f;
+	public float replyLeftPadding = 0.06f;
 	public float replyTopPadding = 0.03f;
 	public float replyBetweenPadding = 0.03f;
+	public int fontRatio = 35;
 	
 	public ReplyPrefixStyle replyPrefixStyle = ReplyPrefixStyle.Number;
 	public string replyPrefixDelimiter = ")";
-	public float replyPrefixPadding = 0.025f;
+	public float replyPrefixPadding = 0.035f;
 	
 	public string continueDialogueText = "<continue>";
 	public string endDialogueText = "<end conversation>";
@@ -27,11 +28,7 @@ public class DialogueUI : MonoBehaviour {
 	public FontStyle selectedFont;
 	public Color selectedColor = new Color(0.7f,0.65f,0,1);
 	
-	public GameObject background;
-	public float backgroundPaddingTop = 5;
-	public float backgroundPaddingBottom = 5;
-	public float backgroundPaddingLeft = 25;
-	public float backgroundPaddingRight = 0;
+	public GUITexture background;
 	
 	void Awake()
 	{
@@ -41,7 +38,7 @@ public class DialogueUI : MonoBehaviour {
 		else
 		{
 			for(int i = 0; i < dm.repliesGUI.Length; i++)
-					dm.repliesGUI[i].transform.GetChild(0).localPosition = new Vector3(-replyPrefixPadding, 0, 0);
+				dm.repliesGUI[i].transform.GetChild(0).localPosition = new Vector3(-replyPrefixPadding, 0, 0);
 			switch(replyPrefixStyle)
 			{
 			case ReplyPrefixStyle.Letter:
@@ -60,35 +57,21 @@ public class DialogueUI : MonoBehaviour {
 			}
 		}
 	}
-	
-	private void FitBackground()
-	{
-		for(int i = 1; i < dm.repliesGUI.Length; i++)
-			if(!dm.repliesGUI[i].activeSelf)
-			{
-				Rect textRect = dm.repliesGUI[i-1].guiText.GetScreenRect();
-				background.guiTexture.pixelInset = new Rect(
-					textRect.xMin - backgroundPaddingLeft,
-					textRect.yMin - backgroundPaddingBottom,
-					-lineWidth + backgroundPaddingLeft + backgroundPaddingRight,
-					-textRect.yMax + backgroundPaddingTop + backgroundPaddingBottom);
-				break;
-			}
-	}
-	
+
 	public void OnStartDialogue(Dialogue dia)
 	{
 		if(background != null)
 		{
-			FitBackground();
-			background.SetActive(true);
+			background.gameObject.SetActive(true);
 		}
 	}
 
 	public void OnEndDialogue(Dialogue dia)
 	{
 		if(background != null)
-			background.SetActive(false);
+		{
+			background.gameObject.SetActive(false);
+		}
 	}
 
 	public void OnBeforeReplyChange(int newVal)
@@ -117,6 +100,5 @@ public class DialogueUI : MonoBehaviour {
 
 	public void OnAfterReplySelect(Line activeLine)
 	{
-		FitBackground();
 	}
 }

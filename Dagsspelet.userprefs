@@ -15,6 +15,10 @@
                 </Node>
                 <Node name="Flags" expanded="True" />
                 <Node name="General" expanded="True" />
+                <Node name="Player" expanded="True" />
+                <Node name="World" expanded="True">
+                  <Node name="Actions" expanded="True" />
+                </Node>
               </Node>
             </Node>
           </Node>

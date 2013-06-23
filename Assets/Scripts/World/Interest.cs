@@ -7,7 +7,8 @@ public class Interest : MonoBehaviour {
 	public enum InterestType
 	{
 		Person,
-		Item
+		Item,
+		Exit
 	}
 	
 	public List<Condition> conditions;
@@ -15,7 +16,7 @@ public class Interest : MonoBehaviour {
 	
 	public void OnMouseDown()
 	{
-		gameObject.SendMessage("activate", SendMessageOptions.DontRequireReceiver);
+		gameObject.SendMessage("Activate", SendMessageOptions.DontRequireReceiver);
 	}
 	
 	public void OnMouseOver()

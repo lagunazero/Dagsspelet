@@ -1,4 +1,3 @@
-//#define COMP_DIAS
 using UnityEngine;
 using UnityEditor;
 using System.Collections;
@@ -6,30 +5,25 @@ using System.Collections.Generic;
 
 public class DialogueWindow : EditorWindow {
 	
-#if !COMP_DIAS
 	[MenuItem("Assets/Create/Dialogue")]
 	public static void CreateAsset()
 	{
 		CustomAssetUtility.CreateAsset<Dialogue>();
 	}
-#endif
 	
 	#region Fields
 	//Temp storing
-	private List<Line> passed = new List<Line>();
+	private List<string> passed = new List<string>();
 	private List<string> names = new List<string>();
 	private string[] diaNames;
 	
 	//Temporary objects and refs
 	private Dialogue activeDialogue;
 	private List<Transform> activeSpeakers = new List<Transform>();
-#if COMP_DIAS
-	private GameObject activeObject, activeParent, deleteObject, isTryingToLink;
-#else
-	private Line activeObject, activeParent, deleteObject, isTryingToLink;
-#endif
+	private string activeObject = null;
+	private string activeParent = null;
+	private string isTryingToLink = null;
 	private IList activeChildren;
-	private IList deleteList;
 	private int deleteIndex;
 	private string newFlagCondition;
 	private List<string> functionActionNames = new List<string>();
@@ -67,13 +61,8 @@ public class DialogueWindow : EditorWindow {
 			activeObject = null;
 			activeParent = null;
 			activeChildren = null;
-#if COMP_DIAS
-			activeSpeakers.Add(Selection.activeTransform);
-			activeSpeaker = Selection.activeGameObject.GetComponent<DialogueSpeaker>()
 			activeDialogue = Selection.activeObject as Dialogue;
-#else
-			activeDialogue = Selection.activeObject as Dialogue;
-#endif
+
 			if(prefs == null)
 			{
 				prefs = GameObject.Find("#DialogueManager").GetComponent<DialogueWindowPreferences>();
@@ -83,9 +72,7 @@ public class DialogueWindow : EditorWindow {
 			ResetFunctionOptions();
 			
 			RefreshDialogueNames();
-//			Object[] allDias = Resources.FindObjectsOfTypeAll(typeof(Dialogue));
 			int index = 0;
-//			for(; index < allDias.Length && allDias[index] != Selection.activeObject; index++);
 			for(; index < diaNames.Length && diaNames[index] != Selection.activeObject.name; index++);
 			EditorPrefs.SetInt("DialogueWindow_DialogueIndex", index);
 		}
@@ -114,46 +101,7 @@ public class DialogueWindow : EditorWindow {
 		functionActionNames.Add("<none>");
 		functionActionTypes.Add(null);
 		condNames = new List<string>();
-#if COMP_DIAS
-		foreach(var script in Selection.activeGameObject.GetComponents<MonoBehaviour>())
-		{
-			foreach(var method in script.GetType().GetMethods(System.Reflection.BindingFlags.Instance
-				| System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.DeclaredOnly))
-			{
-				var p = method.GetParameters();
-				if(p.Length == 0)
-				{
-					functionActionNames.Add(method.Name);
-					functionActionTypes.Add(null);
-				}
-				else if(p.Length == 1) //Since Broadcast/Send Message only allows one parameter.
-				{
-					functionActionNames.Add(method.Name);
-					functionActionTypes.Add(p[0].ParameterType);
-				}
-			}
-			
-			if(!(script is DialogueSpeaker))
-				foreach(var member in script.GetType().GetFields(System.Reflection.BindingFlags.Instance
-					| System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.DeclaredOnly))
-				{
-					condNames.Add(member.Name);
-				}
-		}
-		
-		foreach(DialogueSpeaker speaker in GameObject.Find("#DialogueManager").GetComponent<DialogueManager>().constantSpeakers)
-		{
-			foreach(var script in speaker.GetComponents<MonoBehaviour>())
-				if(!(script is DialogueSpeaker))
-					foreach(var member in script.GetType().GetFields(System.Reflection.BindingFlags.Instance
-						| System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.DeclaredOnly))
-					{
-						condNames.Add(member.Name);
-					}
-		}
-#else
 		//todo: lägg till ett barn till #DialogueManager som samlar action-scripts?
-#endif
 		
 		/* Using function calls for UI effects.
 		//UI effects
@@ -191,66 +139,16 @@ public class DialogueWindow : EditorWindow {
 	#endregion Init and Setup
 	
 	#region IsOpen
-#if COMP_DIAS
-	private bool IsActive(MonoBehaviour o){ return activeObject == o.gameObject || (activeChildren != null && activeChildren.Contains(o)); } // activeObject.transform.FindChild(o.name); }
-	private string OpenName(Line o){ return "foldout_" + o.GetInstanceID().ToString(); }
-#else
-	private bool IsActive(Line o){ return activeObject == o; }// || (activeChildren != null && activeChildren.Contains(o)); } // activeObject.transform.FindChild(o.name); }
+	private bool IsActive(Line o){ return activeObject == o.id; }// || (activeChildren != null && activeChildren.Contains(o)); } // activeObject.transform.FindChild(o.name); }
 	private string OpenName(Line o){ return "foldout_" + o.GetHashCode().ToString(); }
-#endif
-	
-#if COMP_DIAS
-	private bool OnGUI_IsOpen(Dialogue o, int indent)
-	{
-		EditorGUI.indentLevel = indent;
-		//If we haven't passed this before, make it possible to open
-//		if(!passed.Contains(o.GetInstanceID()))
-		{
-//			passed.Add(o.GetInstanceID());
-			
-			EditorGUILayout.BeginHorizontal(GUILayout.Width(1)); //hack to make the foldout take less than half
-			GUILayout.Space(15.2f * EditorGUI.indentLevel);
-			//temp?
-//			if(GUILayout.Button(EditorPrefs.GetBool(OpenName(o), true) ? "-" : "+", prefs.styleFoldoutButton, layoutFoldout))
-//				EditorPrefs.SetBool(OpenName(o), !EditorPrefs.GetBool(OpenName(o), true));
-			EditorGUILayout.EndHorizontal();
-			names.Add(o.name);
-			//if(activeObject == o.gameObject)
-			{
-				GUI.SetNextControlName(o.name);
-				var s = GUILayout.TextField(o.dialogueName, prefs.styleDialogueNormal, layoutComponent);
-				if(s != o.dialogueName)
-				{
-					EditorUtility.SetDirty(o);
-					Undo.RegisterUndo(o, "dialogue name editing");
-					o.dialogueName = s;
-				}
-			}
-//			else if(GUILayout.Button(o.dialogueName, IsActive(o) ? ui.StyleActiveDialogue : ui.StyleDialogue, layoutComponent))
-//			{
-//				activeObject = o.gameObject;
-//			}
-			
-//			return EditorPrefs.GetBool(OpenName(o), true);
-			return true; //temp?
-		}
-//		else
-//		{
-//			EditorGUILayout.LabelField(o.name, IsActive(o) ? prefs.styleDialogueLinkActive : prefs.styleDialogueLinkNormal);
-////			if(GUILayout.Button(o.name, IsActive(o) ? ui.StyleActiveLinkedDialogue : ui.StyleLinkedDialogue))
-////				activeObject = o.gameObject;
-//			return false;
-//		}
-	}
-#endif
-	
+
 	private bool OnGUI_IsOpen(Line o, int indent)
 	{
 		EditorGUI.indentLevel = indent;
 		//If we haven't passed this before, make it possible to open
-		if(!passed.Contains(o))
+		if(!passed.Contains(o.id))
 		{
-			passed.Add(o);
+			passed.Add(o.id);
 			
 			EditorGUILayout.BeginHorizontal(GUILayout.Width(15.2f * EditorGUI.indentLevel)); //hack to make the foldout take less than half
 			GUILayout.Space(15.2f * EditorGUI.indentLevel);
@@ -272,10 +170,6 @@ public class DialogueWindow : EditorWindow {
 					layoutComponent);
 				if(s != o.text)
 				{
-#if COMP_DIAS
-					EditorUtility.SetDirty(o);
-					Undo.RegisterUndo(o, "line text editing");
-#endif
 					o.text = s;
 				}
 				if(!o.isPlayer)
@@ -304,69 +198,28 @@ public class DialogueWindow : EditorWindow {
 	#endregion IsOpen
 	
 	#region Delete
-#if COMP_DIAS
-	private void OnGUI_CheckDelete(Dialogue d, DialogueSpeaker parent)
-	{
-		if(GUILayout.Button("Delete", layoutDelete) &&
-			(!prefs.confirmDelete || Event.current.control || EditorUtility.DisplayDialog("Are you sure?", "", "Yes", "No, never mind"))) {
-			deleteObject = d.gameObject;
-			deleteList = parent.dialogues;
-			//deleteIndex = System.Array.IndexOf(parent.dialogues, d);
-			deleteIndex = parent.dialogues.IndexOf(d);
-		}
-	}
-#else
 	private void OnGUI_CheckDelete()
 	{
 		if(GUILayout.Button("Delete", layoutDelete) &&
 			(!prefs.confirmDelete || Event.current.control || EditorUtility.DisplayDialog("Are you sure?", "", "Yes", "No, never mind"))) {
-			//todo
-		}
-	}
-#endif
-
-#if COMP_DIAS
-	private void OnGUI_CheckDelete(Line d, Dialogue parent, bool isLink)
-	{
-		if(GUILayout.Button("Delete", layoutDelete) &&
-			(!prefs.confirmDelete || Event.current.control || EditorUtility.DisplayDialog("Are you sure?", "", "Yes", "No, never mind"))) {
-			if(!isLink)
-				deleteObject = d;
-			deleteList = parent.openingLines;
-			//deleteIndex = System.Array.IndexOf(parent.openingLines, d);
-			parent.openingLines.IndexOf(d);
-		}
-	}
-#else
-	private void OnGUI_CheckDelete(Line d, bool isLink)
-	{
-		if(GUILayout.Button("Delete", layoutDelete) &&
-			(!prefs.confirmDelete || Event.current.control || EditorUtility.DisplayDialog("Are you sure?", "", "Yes", "No, never mind"))) {
-			activeDialogue.allLines.Remove(d);
-			activeDialogue.openingLines.Remove(d); //Obviously only works for opening lines, but that's alright.
-			EditorUtility.SetDirty(activeDialogue);
+			//todo: destroy dialogue asset
 			EditorGUIUtility.ExitGUI();
 		}
 	}
-#endif
 
-	private void OnGUI_CheckDelete(Line d, Line parent, bool isLink)
+	private void OnGUI_CheckDelete(Line d, Line parent)
 	{
 		if(GUILayout.Button("Delete", layoutDelete) &&
 			(!prefs.confirmDelete || Event.current.control || EditorUtility.DisplayDialog("Are you sure?", "", "Yes", "No, never mind"))) {
-			if(!isLink)
-				deleteObject = d;
-#if COMP_DIAS
-			deleteList = parent.replies;
-			//deleteIndex = System.Array.IndexOf(parent.replies, d);
-			deleteIndex = parent.replies.IndexOf(d);
-#else
-			activeDialogue.allLines.Remove(d);
-			activeDialogue.openingLines.Remove(d); //Obviously only works for opening lines, but that's alright.
-			parent.replies.Remove(d);
+			
+			if(parent != null)
+				parent.replies.Remove(d.id);
+			else
+				activeDialogue.openingLines.Remove(d.id);
+			activeDialogue.RemoveUnusedLine(d);
+			
 			EditorUtility.SetDirty(activeDialogue);
 			EditorGUIUtility.ExitGUI();
-#endif
 		}
 	}
 
@@ -374,85 +227,29 @@ public class DialogueWindow : EditorWindow {
 	{
 		if(GUILayout.Button("Delete", layoutDelete) &&
 			(!prefs.confirmDelete || Event.current.control || EditorUtility.DisplayDialog("Are you sure?", "", "Yes", "No, never mind"))) {
-#if COMP_DIAS
-			deleteObject = d.gameObject;
-			deleteList = parent.conditions;
-			deleteIndex = parent.conditions.IndexOf(d);
-#else
 			parent.conditions.Remove(d);
 			EditorUtility.SetDirty(activeDialogue);
 			EditorGUIUtility.ExitGUI();
-#endif
 		}
-	}
-
-	private void Delete()
-	{
-		//temp
-//		if(deleteObject != null)
-//		{
-//			Undo.RegisterSceneUndo("deleting dialogue component");
-//			DestroyImmediate(deleteObject);
-//			deleteObject = null;
-//		}
-//		else
-//			Undo.RegisterSceneUndo("deleting link");
-//		deleteList.RemoveAt(deleteIndex);
-//		deleteList = null;
-	}
-	
-	private void DeleteLink()
-	{
 	}
 	#endregion Delete
 
 	#region Add
-#if COMP_DIAS
-	private void AddDialogue()
-	{
-		Undo.RegisterSceneUndo("adding dialogue");
-		GameObject go = new GameObject(o.name + " D" + (o.dialogues.Count + 1), typeof(Dialogue));
-		if(o.transform.FindChild(o.name + "_Dialogues") == null)
-		{
-			new GameObject(o.name + "_Dialogues").transform.parent = o.transform;
-		}
-		
-		Transform parent = o.transform.FindChild(o.name + "_Dialogues");
-		go.transform.parent = parent;
-		Dialogue dia = go.GetComponent<Dialogue>();
-		dia.dialogueName = dia.name;
-		o.dialogues.Add(dia);
-		EditorUtility.SetDirty(o);
-		//Set the selected dialogue to be the new one.
-		if(!prefs.isDisplayingMultipleDialogues)
-			EditorPrefs.SetInt("DialogueWindow_DialogueIndex_" + o.name, o.dialogues.Count - 1);
-	}
-#else
 	private void AddDialogue()
 	{
 		CustomAssetUtility.CreateAsset<Dialogue>();
+		EditorGUIUtility.ExitGUI();
 	}
-#endif
 	
 	private void OnGUI_AddLine(Dialogue o)
 	{
 		if(GUILayout.Button("Add line", layoutAdd))
 		{
 			Undo.RegisterSceneUndo("adding line");
-#if COMP_DIAS
-			GameObject go = new GameObject(o.name + " L" + (o.openingLines.Count + 1), typeof(Line));
-			o.dialogueAsset.lines.Add(l);
-			go.transform.parent = o.transform;
-			Line l = go.GetComponent<Line>();
-			l.speaker = l.FindSpeaker(); //temp?
-			o.openingLines.Add(l);
-			EditorUtility.SetDirty(o);
-#else
-			Line l = new Line();
+			Line l = activeDialogue.CreateLine();
 			o.allLines.Add(l);
-			o.openingLines.Add(l);
+			o.openingLines.Add(l.id);
 			EditorUtility.SetDirty(activeDialogue);
-#endif
 		}
 	}
 	
@@ -461,21 +258,13 @@ public class DialogueWindow : EditorWindow {
 		if(GUILayout.Button("Add line", layoutAdd))
 		{
 			Undo.RegisterSceneUndo("adding line");
-#if COMP_DIAS
-			GameObject go = new GameObject(o.name + " L" + (o.replies.Count + 1), typeof(Line));
-			go.transform.parent = o.transform;
-			Line l = go.GetComponent<Line>();
+			Line l = activeDialogue.CreateLine();
 			if(prefs.autoAlternateSpeaker)
 				l.isPlayer = !o.isPlayer;
-			l.speaker = l.FindSpeaker();
-			o.replies.Add(l);
-			EditorUtility.SetDirty(o);
-#else
-			Line l = new Line();
 			activeDialogue.allLines.Add(l);
-			o.replies.Add(l);
+			o.replies.Add(l.id);
+			
 			EditorUtility.SetDirty(activeDialogue);
-#endif
 		}
 	}
 /*	
@@ -499,47 +288,43 @@ public class DialogueWindow : EditorWindow {
 				isTryingToLink = o.gameObject;
 		}
 	}
-*/	
+*/
 	private void OnGUI_LinkLine(Line o)
 	{
-		if(isTryingToLink != null)
+		if(string.IsNullOrEmpty(isTryingToLink))
 		{
-			if(isTryingToLink == o)
+			if(GUILayout.Button("Link line", layoutAdd))
+				isTryingToLink = o.id;
+		}
+		else
+		{
+			if(isTryingToLink == o.id)
 			{
 				if(GUILayout.Button("Stop link", layoutAdd))
 					isTryingToLink = null;
 			}
 			else
 			{
-				if(GUILayout.Button("Link", layoutAdd))
-					Link(o);
+				if(activeDialogue.GetLine(isTryingToLink).isPlayer && o.isPlayer)
+					GUILayout.Button("N/A", layoutAdd);
+				else if(activeDialogue.GetLine(isTryingToLink).replies.Contains(o.id))
+					GUILayout.Button("N/A", layoutAdd);
+				else
+					if(GUILayout.Button("Link", layoutAdd))
+						Link(o);
 			}
-		}
-		else
-		{
-			if(GUILayout.Button("Link line", layoutAdd))
-				isTryingToLink = o;
 		}
 	}
 	
 	private Condition AddCondition(Line o)
 	{
 		Undo.RegisterSceneUndo("adding condition");
-#if COMP_DIAS
-		GameObject go = new GameObject(o.name + " C" + (o.conditions.Count + 1), typeof(Condition));
-		go.transform.parent = o.transform;
-		Condition cond = go.GetComponent<Condition>();
-		cond.flag = newFlagCondition;
-		newFlagCondition = "";
-		o.conditions.Add(cond);
-		EditorUtility.SetDirty(o);
-		return cond;
-#else
 		Condition c = new Condition();
+		c.flag = newFlagCondition;
+		newFlagCondition = "";
 		o.conditions.Add(c);
 		EditorUtility.SetDirty(activeDialogue);
 		return c;
-#endif
 	}
 	#endregion Add
 	
@@ -550,10 +335,10 @@ public class DialogueWindow : EditorWindow {
 			o.HasDetailSettings() ? prefs.styleDetailsButtonConfigured : prefs.styleDetailsButtonNormal
 			, layoutDetails))
 		{
-			if(activeObject != o)
+			if(activeObject != o.id)
 			{
-				activeObject = o;
-				activeParent = parent;
+				activeObject = o.id;
+				activeParent = (parent != null) ? parent.id : null;
 			}
 			else
 			{
@@ -573,44 +358,29 @@ public class DialogueWindow : EditorWindow {
 			{
 				//Looks ugly, but it actually works (i.e. it only requires 1 undo action).
 //				Undo.RegisterUndo(l.replies.ToArray(), "if a line is the player's");
-				foreach(var r in l.replies)
+				foreach(string id in l.replies)
 				{
-					r.isPlayer = false;
-#if COMP_DIAS
-					EditorUtility.SetDirty(r);
-#endif
+					activeDialogue.GetLine(id).isPlayer = false;
 				}
 			}
 //			Undo.RegisterUndo(l, "if a line is the player's");
 			l.isPlayer = b;
-#if COMP_DIAS
-			EditorUtility.SetDirty(l);
-#else
 			EditorUtility.SetDirty(activeDialogue);
-#endif
 		}
 	}
 	
 	private void Link(Line linkObject)
 	{
-		Line l = isTryingToLink;//.GetComponent<Line>();
-		if(l != null)
+		if(!string.IsNullOrEmpty(isTryingToLink) && linkObject != null)
 		{
-			l.replies.Add(linkObject);
-#if COMP_DIAS
-			EditorUtility.SetDirty(l); //temp
-#else
-			EditorUtility.SetDirty(activeDialogue);
-#endif
-		}
-		else //does this ever happen?
-		{
-#if COMP_DIAS
-			Dialogue d = isTryingToLink.GetComponent<Dialogue>();
-			d.openingLines.Add(linkObject);
-			EditorUtility.SetDirty(d);
-#else
-#endif
+			Line linkFrom = activeDialogue.GetLine(isTryingToLink);
+			if(linkFrom != null)
+			{
+				linkFrom.replies.Add(linkObject.id);
+				EditorUtility.SetDirty(activeDialogue);
+			}
+			else
+				Debug.LogError("Tried to link from a possibly deleted object (id:" + isTryingToLink + ")");
 		}
 		isTryingToLink = null;
 		EditorGUIUtility.ExitGUI();
@@ -619,16 +389,7 @@ public class DialogueWindow : EditorWindow {
 	private bool SelectedValidCharacter()
 	{
 		//Ensure we've selected an applicable object.
-#if COMP_DIAS
-		if(Selection.activeGameObject == null)
-			return false;
-		DialogueSpeaker c = Selection.activeGameObject.GetComponent<DialogueSpeaker>();
-		if(c == null)
-			return false;
-		return true;
-#else
 		return (Selection.activeObject is Dialogue);
-#endif
 	}
 	#endregion Various actions
 	
@@ -636,14 +397,10 @@ public class DialogueWindow : EditorWindow {
 	void OnGUI () {
 		if(activeDialogue == null) //if(!SelectedValidCharacter())
 		{
-#if COMP_DIAS
-			GUILayout.Label("Please select a GameObject with a Character component.");
-#else
 			GUILayout.Label("Please select a Dialogue object.\n" +
 				"If you don't already have one, you can create one by right-\n" +
 				"clicking in the Project tab and selecting Create -> Dialogue.");
 			//todo: Menyvalet borde ändå finnas
-#endif
 			return;
 		}
 		//Could be good to have.
@@ -687,13 +444,13 @@ public class DialogueWindow : EditorWindow {
 		EditorGUIUtility.LookLikeControls();
 
 		//The selected component. Handled separately from OnGUI_Actions since they break the FocusedControl trick.
-		if(activeObject != null)
+		if(!string.IsNullOrEmpty(activeObject))
 		{
 			EditorGUI.indentLevel = 0;
 			EditorGUILayout.Separator();
 			GUI.backgroundColor = prefs.activeObjectBackgroundColor;
 			//The finer details of the currently selected component.
-			Line l = activeObject;//.GetComponent<Line>();
+			Line l = activeDialogue.GetLine(activeObject);
 			if(l != null){
 				activeChildren = l.replies;
 				OnGUI_Selection(l);
@@ -708,10 +465,6 @@ public class DialogueWindow : EditorWindow {
 			}
 			GUI.backgroundColor = Color.white;
 		}
-
-		//Are we deleting anything?
-		if(deleteList != null)
-			Delete();
 	}
 	
 	void OnGUI_Actions(GameObject activeObject)
@@ -754,71 +507,11 @@ public class DialogueWindow : EditorWindow {
 	#region OnGUI Main Components
 	void OnGUI_Dialogues()
 	{
-#if COMP_DIAS
-		if(prefs.isDisplayingMultipleDialogues)
-		{
-			OnGUI_DialogueMulti(activeSpeaker);
-		}
-		else
-#endif
-		{
-			OnGUI_DialogueSingle(activeDialogue);
-		}
+		OnGUI_DialogueSingle(activeDialogue);
 	}
-
-#if COMP_DIAS
-	void OnGUI_DialogueMulti(DialogueSpeaker parent)
-	{
-		if(GUILayout.Button("Add dialogue")) AddDialogue(parent);
-		EditorGUILayout.Separator();
-		foreach(Dialogue d in parent.dialogues)
-		{
-			activeDialogue = d;
-			if(d == null) continue;
-			//We want everything horizontally.
-			EditorGUILayout.BeginHorizontal();
-			bool isOpen = OnGUI_IsOpen(d, 0);
-			
-			//Dialogues can be previewed in-game.
-			if(GUILayout.Button("Preview", layoutPreview))
-			{
-				DialogueManager dm = GameObject.Find("#DialogueManager").GetComponent<DialogueManager>();
-				dm.previewDialogue = d;
-				dm.previewCharacter = Selection.activeGameObject.GetComponent<DialogueSpeaker>();
-				EditorUtility.SetDirty(dm);
-				EditorApplication.isPlaying = true;
-			}
-			OnGUI_AddLine(d);
-//				OnGUI_LinkLine(d); //temp
-			OnGUI_CheckDelete(d, parent);
-			EditorGUILayout.EndHorizontal();
-
-			//If we're open, proceed to the nested content.
-			if(isOpen)
-				OnGUI_Lines(d, 1);
-			
-			EditorGUILayout.Separator();
-			EditorGUILayout.Separator();
-		}
-	}
-#endif
 
 	void OnGUI_DialogueSingle(Dialogue dia)
 	{
-		
-#if COMP_DIAS
-		string[] diaNames = new string[parent.dialogues.Count];
-		for(int i = 0; i < parent.dialogues.Count; i++)
-			diaNames[i] = parent.dialogues[i].dialogueName;
-		EditorGUILayout.BeginHorizontal();
-		EditorPrefs.SetInt("DialogueWindow_DialogueIndex_" + parent.name,
-			EditorGUILayout.Popup(EditorPrefs.GetInt("DialogueWindow_DialogueIndex_" + parent.name), diaNames));
-		if(GUILayout.Button("Add dialogue", layoutAddDialogue)) AddDialogue(parent);
-		
-		int index = EditorPrefs.GetInt("DialogueWindow_DialogueIndex_" + parent.name);
-		if(index >= parent.dialogues.Count) return;
-		activeDialogue = parent.dialogues[index];
-#else
 		EditorGUILayout.BeginHorizontal();
 		if(GUILayout.Button("Add dialogue", layoutAddDialogue)) AddDialogue();
 
@@ -833,7 +526,7 @@ public class DialogueWindow : EditorWindow {
 			activeParent = null;
 			activeChildren = null;
 		}
-#endif
+
 		if(activeDialogue == null) return;
 		
 //		if(EditorPrefs.GetBool("DialogueWindow_IsRenamingDialogue"))
@@ -869,12 +562,8 @@ public class DialogueWindow : EditorWindow {
 			EditorApplication.isPlaying = true;
 		}
 		OnGUI_AddLine(activeDialogue);
-#if COMP_DIAS
-		OnGUI_LinkLine(activeDialogue);
-		OnGUI_CheckDelete(activeDialogue, parent);
-#else
+		GUILayout.Space(74);
 		OnGUI_CheckDelete();
-#endif
 		EditorGUILayout.EndHorizontal();
 
 		OnGUI_Lines(activeDialogue, 1);
@@ -882,29 +571,25 @@ public class DialogueWindow : EditorWindow {
 	
 	void OnGUI_Lines(Dialogue parent, int indent)
 	{
-		foreach(Line l in parent.openingLines)
+		foreach(string id in parent.openingLines)
 		{
+			Line l = activeDialogue.GetLine(id);
 			if(l == null) continue;
-			if(l == activeObject)
+			if(l.id == activeObject)
 				GUI.backgroundColor = prefs.activeObjectBackgroundColor;
 			else if(activeChildren != null && activeChildren.Contains(l))
 				GUI.backgroundColor = prefs.activeChildrenBackgroundColor;
 			else
 				GUI.backgroundColor = Color.white;
 			EditorGUILayout.BeginHorizontal();
-			bool hasPassed = passed.Contains(l);//.GetInstanceID());
-
+			
 			//Each component in a row
 			bool isOpen = OnGUI_IsOpen(l, indent);
 			GUILayout.Space(18); //Add space where the IsPlayer toggle is.
-			OnGUI_ShowDetails(l, null);// parent.gameObject);
+			OnGUI_ShowDetails(l, null);
 			OnGUI_AddLine(l);
 			OnGUI_LinkLine(l);
-#if COMP_DIAS
-			OnGUI_CheckDelete(l, parent, hasPassed);
-#else
-			OnGUI_CheckDelete(l, hasPassed);
-#endif
+			OnGUI_CheckDelete(l, null);
 			
 			EditorGUILayout.EndHorizontal();
 
@@ -917,28 +602,28 @@ public class DialogueWindow : EditorWindow {
 
 	void OnGUI_Lines(Line parent, int indent)
 	{
-		foreach(Line l in parent.replies)
+		foreach(string id in parent.replies)
 		{
+			Line l = activeDialogue.GetLine(id);
 			if(l == null) continue;
-			if(l == activeObject)
+			if(l.id == activeObject)
 				GUI.backgroundColor = prefs.activeObjectBackgroundColor;
 			else if(activeChildren != null && activeChildren.Contains(l))
 				GUI.backgroundColor = prefs.activeChildrenBackgroundColor;
 			else
 				GUI.backgroundColor = Color.white;
 			EditorGUILayout.BeginHorizontal();
-			bool hasPassed = passed.Contains(l);//.GetInstanceID());
 
 			//Each component in a row
 			bool isOpen = OnGUI_IsOpen(l, indent);
-			if(!parent.isPlayer)
+			if(!parent.isPlayer && !activeDialogue.openingLines.Contains(id))
 				ToggleIsPlayer(l, GUILayout.Toggle(l.isPlayer, "", GUILayout.Width(14)));
 			else
 				GUILayout.Space(18); //Add space where the IsPlayer toggle is.
 			OnGUI_ShowDetails(l, parent);
 			OnGUI_AddLine(l);
 			OnGUI_LinkLine(l);
-			OnGUI_CheckDelete(l, parent, hasPassed);
+			OnGUI_CheckDelete(l, parent);
 			
 			EditorGUILayout.EndHorizontal();
 
@@ -958,8 +643,8 @@ public class DialogueWindow : EditorWindow {
 	
 	void OnGUI_Selection(Line line)
 	{
-		FlagManager fm = GameObject.Find("#DialogueManager").GetComponent<FlagManager>();
-		Line parentLine = activeParent;//.GetComponent<Line>();
+		FlagManager fm = GameObject.Find("#Player").GetComponent<FlagManager>();
+		Line parentLine = activeDialogue.GetLine(activeParent);
 		
 		Vector2 scroll = EditorGUILayout.BeginScrollView(new Vector2(
 			EditorPrefs.GetFloat("DialogueWindow_Selection_ScrollX"), 0),
@@ -1040,14 +725,16 @@ public class DialogueWindow : EditorWindow {
 		EditorGUILayout.BeginVertical(GUILayout.Width(150));
 		EditorGUILayout.LabelField("Additional data", prefs.styleSelectionLabel);
 		if(parentLine != null && !parentLine.isPlayer)
+		{
 			ToggleIsPlayer(line, EditorGUILayout.Toggle("Player's line", line.isPlayer));
-		else
-			if(EditorGUILayout.Toggle("Player's line", line.isPlayer))
-				EditorUtility.DisplayDialog("Cannot become player's", parentLine == null
-					? "First line cannot be the player's."
-					: "Player cannot have consecutive lines.", "OK");
+			EditorGUILayout.Separator();
+		}
+//		else
+//			if(EditorGUILayout.Toggle("Player's line", line.isPlayer))
+//				EditorUtility.DisplayDialog("Cannot become player's", parentLine == null
+//					? "First line cannot be the player's."
+//					: "Player cannot have consecutive lines.", "OK");
 		
-		EditorGUILayout.Separator();
 		if(line.isPlayer)
 		{
 			var i = EditorGUILayout.IntField("Countdown", line.countdown);
@@ -1060,15 +747,6 @@ public class DialogueWindow : EditorWindow {
 		}
 		else
 		{
-#if COMP_DIAS
-			DialogueSpeaker sp = EditorGUILayout.ObjectField("Speaker", line.speaker, typeof(DialogueSpeaker), true) as DialogueSpeaker;
-			if(sp != line.speaker)
-			{
-//				EditorUtility.SetDirty(line); //temp
-//				Undo.RegisterUndo(line, "speaker editing");
-				line.speaker = sp;
-			}
-#else
 			int prevIndex = activeDialogue.speakers.IndexOf(line.speaker);
 			if(prevIndex == -1) prevIndex = (int)Dialogue.SpeakerIndex.TARGET;
 			int spIndex = EditorGUILayout.Popup("Speaker", prevIndex,
@@ -1086,8 +764,8 @@ public class DialogueWindow : EditorWindow {
 					line.speaker = activeDialogue.speakers[spIndex];
 				}
 			}
-#endif
-			var i = EditorGUILayout.IntField("Priority", line.priority);
+
+						var i = EditorGUILayout.IntField("Priority", line.priority);
 			if(i != line.priority)
 			{
 //				EditorUtility.SetDirty(line); //temp

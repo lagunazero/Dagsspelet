@@ -5,7 +5,7 @@ using System.Collections.Generic;
 public class DialogueManager : MonoBehaviour {
 	
 	//Object refs
-	public FlagManager flagManager;
+	private FlagManager flagManager;
 	public DialogueUI ui;
 	public Countdown countdown;
 	public GameObject speakerGUI;
@@ -19,12 +19,13 @@ public class DialogueManager : MonoBehaviour {
 
 	//States
 	private bool isUsable = false;
+	/// <summary>Change this only using ChangeSelection(...)</summary>
 	[HideInInspector]
 	public int selectedReply;
 	[HideInInspector]
 	public Line activeLine;
 	[HideInInspector]
-	public List<Line> availableReplies;
+	public List<string> availableReplies;
 	[HideInInspector]
 	public Dialogue activeDialogue;
 	[HideInInspector]
@@ -32,12 +33,26 @@ public class DialogueManager : MonoBehaviour {
 	private bool nextLineIsPlayers;
 	
 	void Awake () {
-		//if(ui == null) Debug.LogWarning("DialogueManager: Couldn't find a DialogueUI referenced.");
+		flagManager = GameObject.Find("#Player").GetComponent<FlagManager>();
+		if(flagManager == null) Debug.LogWarning("DialogueManager: Couldn't find a FlagManager at the #Player GameObject.");
 	}
 	
 	void Start() {
+		OnScreenSizeChanged();
 		if(previewDialogue != null)
 			StartDialogue(previewDialogue, previewCharacter);
+	}
+	
+	void OnScreenSizeChanged()
+	{
+		int size = Screen.width / ui.fontRatio;
+		speakerGUI.guiText.fontSize = size;
+		textGUI.guiText.fontSize = size;
+		foreach(GameObject r in repliesGUI)
+		{
+			r.guiText.fontSize = size;
+			r.transform.GetChild(0).GetComponent<GUIText>().guiText.fontSize = size;
+		}
 	}
 	
 	private void ChangeSelection(int newVal)
@@ -50,12 +65,12 @@ public class DialogueManager : MonoBehaviour {
 	public void StartDialogue(Dialogue d, DialogueSpeaker c)
 	{
 //		if(c == null) { Debug.LogError("DialogueManager: Got a null Character."); return;}
+		activeCharacter = c;
 		if(d == null) { Debug.LogError("DialogueManager: Got a null Dialogue."); return;}
+		activeDialogue = d;
 		Line line = FindLine(d.openingLines);
 		if(line == null) { Debug.LogError("DialogueManager: Got a null Line."); return;}
 		
-		activeCharacter = c;
-		activeDialogue = d;
 		PrepareLine(line);
 		InvokeActions(line);
 		speakerGUI.SetActive(true);
@@ -83,27 +98,27 @@ public class DialogueManager : MonoBehaviour {
 		activeLine = q;
 		
 		//Text
-//		speakerGUI.guiText.text = activeLine.speaker == null
-//			? activeCharacter.nameInDialogues : activeLine.speaker.nameInDialogues;
-		speakerGUI.guiText.text = activeLine.speaker;
+		speakerGUI.guiText.text = (activeLine.speaker != null && activeLine.speaker.Length > 0)
+			? activeLine.speaker : (activeCharacter != null ? activeCharacter.nameInDialogues : string.Empty);
 		textGUI.guiText.text = activeLine.text;
 		Rect textRect = FormatGuiTextArea(textGUI.guiText, ui.lineWidth);
 		
 		//Replies
-		availableReplies = new List<Line>();
+		availableReplies = new List<string>();
 		nextLineIsPlayers = false;
 		for(int i = 0; i < activeLine.replies.Count; i++)
 		{
-			if(IsAvailable(activeLine.replies[i]))
+			Line reply = activeDialogue.GetLine(activeLine.replies[i]);
+			if(IsAvailable(reply))
 			{
-				if(activeLine.replies[i].isPlayer)
+				if(reply.isPlayer)
 				{
 					nextLineIsPlayers = true;
 					int a = availableReplies.Count;
 					repliesGUI[a].SetActive(true);
 					//repliesGUI[a].guiText.text = char.ConvertFromUtf32(a+97) + ") " + activeLine.replies[i].text;
-					repliesGUI[a].guiText.text = activeLine.replies[i].text;
-					if(!HasLines(activeLine.replies[i].replies))
+					repliesGUI[a].guiText.text = reply.text;
+					if(!HasLines(reply.replies))
 						repliesGUI[a].guiText.text += " " + ui.endDialogueText;
 					repliesGUI[a].guiText.fontStyle = ui.normalFont;
 					repliesGUI[a].guiText.material.color = ui.normalColor;
@@ -113,7 +128,7 @@ public class DialogueManager : MonoBehaviour {
 					//Increase the textRect by the reply's height.
 					textRect.y -= FormatGuiTextArea(repliesGUI[a].guiText, ui.lineWidth).height + ui.replyBetweenPadding * Screen.height;
 				}
-				availableReplies.Add(activeLine.replies[i]);
+				availableReplies.Add(reply.id);
 				//System.Array.Resize(ref availableReplies, availableReplies.Length + 1);
 				//availableReplies[availableReplies.Count - 1] = activeLine.replies[i];
 			}
@@ -155,12 +170,13 @@ public class DialogueManager : MonoBehaviour {
 	//If multiple prerequisites are valid, the one with the highest
 	//priority value gets selected (or the first, in the case of a tie).
 	//Returns null if there is no line that fit.
-	public Line FindLine(List<Line> lines)
+	public Line FindLine(List<string> lines)
 	{
 		Line result = null;
 		bool found;
-		foreach(Line l in lines)
+		foreach(string id in lines)
 		{
+			Line l = activeDialogue.GetLine(id);
 			if(l == null) continue;
 			//Best prio so far?
 			if(result == null || result.priority < l.priority)
@@ -183,12 +199,13 @@ public class DialogueManager : MonoBehaviour {
 		return result;
 	}
 	
-	public bool HasLines(List<Line> lines)
+	public bool HasLines(List<string> lines)
 	{
-		foreach(Line l in lines)
+		foreach(string id in lines)
 		{
-			if(l.conditions.Count == 0) return true;
-			foreach(Condition p in l.conditions)
+			List<Condition> conditions = activeDialogue.GetLine(id).conditions;
+			if(conditions.Count == 0) return true;
+			foreach(Condition p in conditions)
 			{
 				var v = flagManager.GetValue(p.flag);
 				if((!p.hasMin || v >= p.minValue) && (!p.hasMax || v <= p.maxValue))
@@ -211,16 +228,8 @@ public class DialogueManager : MonoBehaviour {
 		return true;
 	}
 
-	public int AvailableReplies(Line l)
-	{
-		int count = 0;
-		for(int i = 0; i < l.replies.Count; i++)
-			if(IsAvailable(l)) count++;
-		return count;
-	}
-	
 	void Update () {
-		
+
 		if(!isUsable) return;
 		
 		//Choose with space + arrows
@@ -290,13 +299,14 @@ public class DialogueManager : MonoBehaviour {
 		SendMessage("OnBeforeReplySelect", activeLine, SendMessageOptions.DontRequireReceiver);
 		if(nextLineIsPlayers)
 		{
-			InvokeActions(availableReplies[selection]);
+			Line selected = activeDialogue.GetLine(availableReplies[selection]);
+			InvokeActions(selected);
 			//If the selected reply has no further lines, end the dialogue.
-			if(!HasLines(availableReplies[selection].replies))
+			if(!HasLines(selected.replies))
 				EndDialogue();
 			else
 			{
-				PrepareLine(FindLine(availableReplies[selection].replies));
+				PrepareLine(FindLine(selected.replies));
 				InvokeActions(activeLine);
 				SendMessage("OnAfterReplySelect", activeLine, SendMessageOptions.DontRequireReceiver);
 			}
@@ -333,29 +343,32 @@ public class DialogueManager : MonoBehaviour {
 		//Function calls
 		if(!string.IsNullOrEmpty(line.action))
 		{
-			switch(line.actionType)
-			{
-			case "system.string":
-				activeCharacter.gameObject.BroadcastMessage(line.action,
-					 line.actionParamString, SendMessageOptions.DontRequireReceiver);
-				break;
-			case "system.int32":
-				activeCharacter.gameObject.BroadcastMessage(line.action,
-					 line.actionParamInt, SendMessageOptions.DontRequireReceiver);
-				break;
-			case "system.single":
-				activeCharacter.gameObject.BroadcastMessage(line.action,
-					 line.actionParamFloat, SendMessageOptions.DontRequireReceiver);
-				break;
-			case "unityengine.vector3":
-				activeCharacter.gameObject.BroadcastMessage(line.action,
-					 line.actionParamVector3, SendMessageOptions.DontRequireReceiver);
-				break;
-			default:
-				activeCharacter.gameObject.BroadcastMessage(line.action,
-					 line.actionParam, SendMessageOptions.DontRequireReceiver);
-				break;
-			}
+			if(activeCharacter == null)
+				Debug.LogWarning("Tried to use a Line action (" + line.action + ") but the dialogue has no active character");
+			else
+				switch(line.actionType)
+				{
+				case "system.string":
+					activeCharacter.gameObject.BroadcastMessage(line.action,
+						 line.actionParamString, SendMessageOptions.DontRequireReceiver);
+					break;
+				case "system.int32":
+					activeCharacter.gameObject.BroadcastMessage(line.action,
+						 line.actionParamInt, SendMessageOptions.DontRequireReceiver);
+					break;
+				case "system.single":
+					activeCharacter.gameObject.BroadcastMessage(line.action,
+						 line.actionParamFloat, SendMessageOptions.DontRequireReceiver);
+					break;
+				case "unityengine.vector3":
+					activeCharacter.gameObject.BroadcastMessage(line.action,
+						 line.actionParamVector3, SendMessageOptions.DontRequireReceiver);
+					break;
+				default:
+					activeCharacter.gameObject.BroadcastMessage(line.action,
+						 line.actionParam, SendMessageOptions.DontRequireReceiver);
+					break;
+				}
 		}
 		
 		//UI Effect
@@ -401,6 +414,16 @@ public class DialogueManager : MonoBehaviour {
 		}
 		*/
 	}
+	
+	public void MouseOver(int index)
+	{
+		ChangeSelection(index);
+	}
+
+	public void MouseDown(int index)
+	{
+		ReplySelect(index);
+	}
 
 	public void CountdownEnded()
 	{
@@ -408,12 +431,13 @@ public class DialogueManager : MonoBehaviour {
 	}
 	
 	//Quite horrendous way of word wrapping a guitext
-    public static Rect FormatGuiTextArea(GUIText guiText, float maxAreaWidth)
+    public static Rect FormatGuiTextArea(GUIText guiText, float maxAreaWidthFraction)
     {
         string[] words = guiText.text.Split(' '); 
         string result = "";
         Rect textArea = new Rect();
-
+		float maxWidth = maxAreaWidthFraction * Screen.width;
+		
 		for(int i = 0; i < words.Length; i++)
         {
             // set the gui text to the current string including new word
@@ -423,7 +447,7 @@ public class DialogueManager : MonoBehaviour {
             textArea = guiText.GetScreenRect();
 
             // if it didn't fit, put word onto next line, otherwise keep it
-            if(textArea.width > maxAreaWidth)
+		    if(textArea.width > maxWidth)
                 result += ("\n" + words[i] + " ");
             else
                 result = guiText.text;

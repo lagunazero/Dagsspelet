@@ -56,16 +56,22 @@
      <Compile Include="Assets\Scripts\Dialogue\Obsolete\ShakeDialogueEffect.cs" />
      <Compile Include="Assets\Scripts\Flags\Condition.cs" />
      <Compile Include="Assets\Scripts\Flags\FlagManager.cs" />
+     <Compile Include="Assets\Scripts\Flags\FlagSetter.cs" />
      <Compile Include="Assets\Scripts\General\Befriend.cs" />
      <Compile Include="Assets\Scripts\General\TestFunctions.cs" />
      <Compile Include="Assets\Scripts\Interface\Countdown.cs" />
+     <Compile Include="Assets\Scripts\Player\Inventory.cs" />
+     <Compile Include="Assets\Scripts\Player\Tracker.cs" />
      <Compile Include="Assets\Scripts\Quiz\Question.cs" />
      <Compile Include="Assets\Scripts\Quiz\Quiz.cs" />
      <Compile Include="Assets\Scripts\World\Actions\BaseAction.cs" />
+     <Compile Include="Assets\Scripts\World\Actions\Exit.cs" />
      <Compile Include="Assets\Scripts\World\Actions\PickupItem.cs" />
      <Compile Include="Assets\Scripts\World\Actions\StartDialogue.cs" />
      <Compile Include="Assets\Scripts\World\Environment.cs" />
      <Compile Include="Assets\Scripts\World\Interest.cs" />
+     <Compile Include="Assets\Scripts\World\Item.cs" />
+     <Compile Include="Assets\SelectReply.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
