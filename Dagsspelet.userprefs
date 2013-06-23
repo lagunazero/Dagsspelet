@@ -1,6 +1,26 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\Scripts\Dialogue\Manager\DialogueManager.cs">
+    <Files>
+      <File FileName="Assets\Scripts\World\Interest.cs" Line="1" Column="1" />
+      <File FileName="Assets\Scripts\World\Actions\BaseAction.cs" Line="1" Column="1" />
+      <File FileName="Assets\Scripts\World\Actions\PickupItem.cs" Line="1" Column="1" />
+      <File FileName="Assets\Scripts\World\Actions\StartDialogue.cs" Line="1" Column="1" />
+      <File FileName="Assets\Scripts\World\Environment.cs" Line="1" Column="1" />
+      <File FileName="Assets\Scripts\Player\Inventory.cs" Line="9" Column="31" />
+      <File FileName="Assets\Scripts\World\Item.cs" Line="6" Column="19" />
+      <File FileName="Assets\Scripts\World\Actions\Exit.cs" Line="11" Column="4" />
+      <File FileName="Assets\Scripts\Player\Tracker.cs" Line="20" Column="4" />
+      <File FileName="Assets\Scripts\Flags\FlagManager.cs" Line="1" Column="1" />
+      <File FileName="Assets\Scripts\Flags\FlagSetter.cs" Line="11" Column="3" />
+      <File FileName="Assets\Scripts\Dialogue\Manager\DialogueUI.cs" Line="103" Column="1" />
+      <File FileName="Assets\Scripts\Dialogue\Manager\DialogueManager.cs" Line="8" Column="34" />
+      <File FileName="Assets\Scripts\Dialogue\Components\Line.cs" Line="1" Column="1" />
+      <File FileName="Assets\Scripts\Dialogue\Components\Dialogue.cs" Line="1" Column="1" />
+      <File FileName="Assets\Scripts\Editor\DialogueWindow.cs" Line="646" Column="16" />
+      <File FileName="Assets\SelectReply.cs" Line="13" Column="61" />
+      <File FileName="Assets\Scripts\Dialogue\Obsolete\Reply.cs" Line="15" Column="3" />
+    </Files>
     <Pads>
       <Pad Id="ProjectPad">
         <State expanded="True">
@@ -10,7 +30,9 @@
                 <Node name="Dialogue" expanded="True">
                   <Node name="Assets" expanded="True" />
                   <Node name="Components" expanded="True" />
-                  <Node name="Manager" expanded="True" />
+                  <Node name="Manager" expanded="True">
+                    <Node name="DialogueManager.cs" selected="True" />
+                  </Node>
                   <Node name="Obsolete" expanded="True" />
                 </Node>
                 <Node name="Flags" expanded="True" />
@@ -25,9 +47,7 @@
           <Node name="Assembly-CSharp-Editor" expanded="True">
             <Node name="Assets" expanded="True">
               <Node name="Scripts" expanded="True">
-                <Node name="Editor" expanded="True">
-                  <Node name="DialogueWindow.cs" selected="True" />
-                </Node>
+                <Node name="Editor" expanded="True" />
               </Node>
             </Node>
           </Node>
