@@ -47,6 +47,7 @@
      <Compile Include="Assets\Scripts\Editor\CustomAssetUtility.cs" />
      <Compile Include="Assets\Scripts\Editor\DialogueWindow.cs" />
      <Compile Include="Assets\Scripts\Editor\FlagManagerInspector.cs" />
+     <Compile Include="Assets\Scripts\Editor\Trekker.cs" />
  <Reference Include="AssetStoreTools">
  <HintPath>Assets\AssetStoreTools\Editor\AssetStoreTools.dll</HintPath>
  </Reference>
