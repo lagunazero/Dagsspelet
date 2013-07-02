@@ -30,6 +30,8 @@ public class DialogueManager : MonoBehaviour {
 	public Dialogue activeDialogue;
 	[HideInInspector]
 	public DialogueSpeaker activeCharacter;
+	[HideInInspector]
+	public GameObject activeGameObject;
 	private bool nextLineIsPlayers;
 	
 	void Awake () {
@@ -40,7 +42,7 @@ public class DialogueManager : MonoBehaviour {
 	void Start() {
 		OnScreenSizeChanged();
 		if(previewDialogue != null)
-			StartDialogue(previewDialogue, previewCharacter);
+			StartDialogue(previewDialogue, previewCharacter, null);
 	}
 	
 	void OnScreenSizeChanged()
@@ -62,7 +64,7 @@ public class DialogueManager : MonoBehaviour {
 		SendMessage("OnAfterReplyChange", selectedReply, SendMessageOptions.DontRequireReceiver);
 	}
 	
-	public void StartDialogue(Dialogue d, DialogueSpeaker c)
+	public void StartDialogue(Dialogue d, DialogueSpeaker c, GameObject dialogueObject)
 	{
 //		if(c == null) { Debug.LogError("DialogueManager: Got a null Character."); return;}
 		activeCharacter = c;
@@ -70,6 +72,7 @@ public class DialogueManager : MonoBehaviour {
 		activeDialogue = d;
 		Line line = FindLine(d.openingLines);
 		if(line == null) { Debug.LogError("DialogueManager: Got a null Line."); return;}
+		activeGameObject = dialogueObject;
 		
 		PrepareLine(line);
 		InvokeActions(line);
@@ -81,11 +84,16 @@ public class DialogueManager : MonoBehaviour {
 	
 	public void EndDialogue()
 	{
+		if(activeGameObject != null)
+		{
+			activeGameObject.SendMessage("OnEndDialogue", activeDialogue, SendMessageOptions.DontRequireReceiver);
+			activeGameObject = null;
+		}
 		SendMessage("OnEndDialogue", activeDialogue, SendMessageOptions.DontRequireReceiver);
-		isUsable = false;
 		activeCharacter = null;
 		activeDialogue = null;
 		activeLine = null;
+		isUsable = false;
 		countdown.StopTimer();
 		speakerGUI.SetActive(false);
 		textGUI.SetActive(false);

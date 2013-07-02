@@ -21,6 +21,14 @@ public class StartDialogue : BaseAction {
 			return;
 		}
 		
-		dm.StartDialogue(dialogue, speaker);
+		dm.StartDialogue(dialogue, speaker, gameObject);
+		if(animation.isPlaying)
+			animation.Stop();
+	}
+	
+	public void OnEndDialogue()
+	{
+		if(animation.clip != null)
+			animation.Play();
 	}
 }
